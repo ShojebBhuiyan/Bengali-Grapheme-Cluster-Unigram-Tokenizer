@@ -1,3 +1,14 @@
-.venv
-datasets
-.cursor
+.venv/
+datasets/
+data/processed/
+models/
+logs/
+checkpoints/
+results/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+.DS_Store
+.cursor/

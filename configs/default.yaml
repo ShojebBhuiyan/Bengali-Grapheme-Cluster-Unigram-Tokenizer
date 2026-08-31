@@ -1,0 +1,33 @@
+# Bengali Grapheme-Cluster Unigram Tokenizer — default configuration
+
+paths:
+  datasets_dir: datasets
+  processed_dir: data/processed
+  models_dir: models
+  logs_dir: logs
+  checkpoints_dir: checkpoints
+  results_dir: results
+
+corpus:
+  # Target size for the processed Bangla training corpus (bytes).
+  # The 9 GB bn.txt is sampled down to this limit; other sources are included up to the remainder.
+  corpus_sample_bytes: 314572800  # 300 MB
+  min_bangla_ratio: 0.5          # minimum fraction of Bengali script chars to keep a line
+  dedup: true
+  normalize_nfc: true
+  shard_size_lines: 50000
+
+training:
+  vocab_size: 32000
+  max_sentence_length: 4192
+  character_coverage: 0.9995
+  seed: 42
+  num_threads: 4
+
+evaluation:
+  eval_sample_lines: 5000
+  strr_word_list_size: 1000
+
+eda:
+  sample_lines: 50000
+  top_n_aksharas: 30
