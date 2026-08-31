@@ -1,6 +1,7 @@
 .venv/
 datasets/
-data/processed/
+data/processed/*
+!data/processed/manifest.json
 models/
 logs/
 checkpoints/
