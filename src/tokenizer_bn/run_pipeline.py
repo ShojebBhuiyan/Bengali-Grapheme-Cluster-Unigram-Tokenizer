@@ -45,6 +45,15 @@ def main(argv: list[str] | None = None) -> int:
     command = args.command
     logger.info("Starting command: %s", command)
 
+    from tokenizer_bn.device import device_info, log_device_info
+    log_device_info(logger, config.device.device)
+    if command in ("evaluate", "eda", "all"):
+        info = device_info(config.device.device)
+        if config.device.use_gpu and info["resolved_device"] == "cpu" and info["torch_available"]:
+            logger.info("GPU requested but only CPU backend available for this step")
+        elif not info["torch_available"] and config.device.use_gpu:
+            logger.info("GPU metrics disabled: install PyTorch with `pip install torch`")
+
     if command in ("build-corpus", "all"):
         if args.force:
             ckpt.reset_step("build-corpus")

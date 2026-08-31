@@ -15,6 +15,7 @@ from tokenizer_bn.checkpoint import CheckpointManager
 from tokenizer_bn.config import Config, ensure_dirs, load_config
 from tokenizer_bn.data.bangla_filter import bangla_char_ratio, count_bengali_chars
 from tokenizer_bn.data.ingest import stream_txt_lines
+from tokenizer_bn.device import log_device_info, resolve_device, torch_available
 from tokenizer_bn.logging_utils import get_logger
 from tokenizer_bn.segmentation.akshara import count_aksharas, segment_aksharas
 
@@ -52,11 +53,32 @@ def run_eda(config: Config | None = None, ckpt: CheckpointManager | None = None)
     lines = _sample_corpus_lines(corpus_path, cfg.eda.sample_lines, seed=cfg.training.seed)
     logger.info("Sampled %d lines", len(lines))
 
+    use_gpu = cfg.device.use_gpu and torch_available() and resolve_device(cfg.device.device) != "cpu"
+    resolved_device = log_device_info(logger, cfg.device.device) if use_gpu else "cpu"
+
     # Compute per-line stats
     char_lens = [len(line) for line in lines]
     akshara_lens = [count_aksharas(line) for line in lines]
     word_lens = [len(line.split()) for line in lines]
     bangla_ratios = [bangla_char_ratio(line) for line in lines]
+
+    if use_gpu:
+        import torch
+        char_t = torch.tensor(char_lens, dtype=torch.float32, device=resolved_device)
+        akshara_t = torch.tensor(akshara_lens, dtype=torch.float32, device=resolved_device)
+        word_t = torch.tensor(word_lens, dtype=torch.float32, device=resolved_device)
+        ratio_t = torch.tensor(bangla_ratios, dtype=torch.float32, device=resolved_device)
+        char_mean = char_t.mean().item()
+        char_median = char_t.median().item()
+        akshara_mean = akshara_t.mean().item()
+        word_mean = word_t.mean().item()
+        ratio_mean = ratio_t.mean().item()
+    else:
+        char_mean = sum(char_lens) / len(char_lens) if char_lens else 0
+        char_median = sorted(char_lens)[len(char_lens) // 2] if char_lens else 0
+        akshara_mean = sum(akshara_lens) / len(akshara_lens) if akshara_lens else 0
+        word_mean = sum(word_lens) / len(word_lens) if word_lens else 0
+        ratio_mean = sum(bangla_ratios) / len(bangla_ratios) if bangla_ratios else 0
 
     # Akshara frequency
     akshara_counter: Counter = Counter()
@@ -65,13 +87,15 @@ def run_eda(config: Config | None = None, ckpt: CheckpointManager | None = None)
 
     stats = {
         "num_lines_sampled": len(lines),
-        "char_len_mean": sum(char_lens) / len(char_lens) if char_lens else 0,
-        "char_len_median": sorted(char_lens)[len(char_lens) // 2] if char_lens else 0,
-        "akshara_len_mean": sum(akshara_lens) / len(akshara_lens) if akshara_lens else 0,
-        "word_len_mean": sum(word_lens) / len(word_lens) if word_lens else 0,
-        "bangla_ratio_mean": sum(bangla_ratios) / len(bangla_ratios) if bangla_ratios else 0,
+        "char_len_mean": char_mean,
+        "char_len_median": char_median,
+        "akshara_len_mean": akshara_mean,
+        "word_len_mean": word_mean,
+        "bangla_ratio_mean": ratio_mean,
         "unique_aksharas": len(akshara_counter),
         "top_aksharas": akshara_counter.most_common(cfg.eda.top_n_aksharas),
+        "device": resolved_device,
+        "gpu_stats": use_gpu,
     }
 
     with open(out_dir / "eda_stats.json", "w", encoding="utf-8") as fh:

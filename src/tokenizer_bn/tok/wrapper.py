@@ -31,6 +31,9 @@ class SentencePieceTokenizer:
     def decode(self, ids: list[int]) -> str:
         return self._sp.DecodeIds(ids)
 
+    def batch_token_lengths(self, texts: list[str]) -> list[int]:
+        return [len(self._sp.EncodeAsIds(text)) for text in texts]
+
 
 class TiktokenTokenizer:
     """GPT-4 / tiktoken baseline."""
@@ -46,6 +49,9 @@ class TiktokenTokenizer:
     def tokenize(self, text: str) -> list[str]:
         return [self._enc.decode([t]) for t in self._enc.encode(text)]
 
+    def batch_token_lengths(self, texts: list[str]) -> list[int]:
+        return [len(self._enc.encode(text)) for text in texts]
+
 
 class HFTokenizer:
     """HuggingFace AutoTokenizer baseline."""
@@ -60,6 +66,10 @@ class HFTokenizer:
 
     def tokenize(self, text: str) -> list[str]:
         return self._tok.tokenize(text)
+
+    def batch_token_lengths(self, texts: list[str]) -> list[int]:
+        encoded = self._tok(texts, add_special_tokens=False, return_attention_mask=True)
+        return [sum(mask) for mask in encoded["attention_mask"]]
 
 
 def load_internal_variant(config: Config, init: InitUnit, model: ModelType) -> Optional[SentencePieceTokenizer]:

@@ -54,12 +54,20 @@ class EDAConfig:
 
 
 @dataclass
+class DeviceConfig:
+    use_gpu: bool = True
+    device: str = "auto"  # auto, cpu, cuda, mps
+    batch_size: int = 256
+
+
+@dataclass
 class Config:
     paths: PathsConfig
     corpus: CorpusConfig = field(default_factory=CorpusConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
     eda: EDAConfig = field(default_factory=EDAConfig)
+    device: DeviceConfig = field(default_factory=DeviceConfig)
     project_root: Path = PROJECT_ROOT
 
     @property
@@ -102,6 +110,7 @@ def load_config(config_path: str | Path | None = None) -> Config:
     training = TrainingConfig(**raw.get("training", {}))
     evaluation = EvaluationConfig(**raw.get("evaluation", {}))
     eda = EDAConfig(**raw.get("eda", {}))
+    device = DeviceConfig(**raw.get("device", {}))
 
     return Config(
         paths=paths,
@@ -109,6 +118,7 @@ def load_config(config_path: str | Path | None = None) -> Config:
         training=training,
         evaluation=evaluation,
         eda=eda,
+        device=device,
     )
 
 

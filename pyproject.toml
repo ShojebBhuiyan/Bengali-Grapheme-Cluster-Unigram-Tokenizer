@@ -26,6 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4,<9.0", "jupyter>=1.0,<2.0"]
+gpu = ["torch>=2.0.0"]
 
 [project.scripts]
 tokenizer-bn = "tokenizer_bn.run_pipeline:main"

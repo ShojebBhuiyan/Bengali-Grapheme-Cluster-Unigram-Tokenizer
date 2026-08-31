@@ -13,3 +13,5 @@ regex>=2024.0.0
 pyarrow>=15.0.0,<20.0.0
 tiktoken>=0.7.0,<1.0.0
 transformers>=4.40.0,<5.0.0
+# Optional GPU support (eval/EDA aggregation):
+# pip install torch --index-url https://download.pytorch.org/whl/cu124

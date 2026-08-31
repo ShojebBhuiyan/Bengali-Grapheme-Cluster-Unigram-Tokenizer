@@ -32,3 +32,8 @@ evaluation:
 eda:
   sample_lines: 50000
   top_n_aksharas: 30
+
+device:
+  use_gpu: true          # use GPU for eval/EDA aggregation when available
+  device: auto           # auto, cpu, cuda, mps
+  batch_size: 256        # batch size for GPU metric computation

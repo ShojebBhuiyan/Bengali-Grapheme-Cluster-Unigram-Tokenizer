@@ -12,6 +12,8 @@ from scipy import stats
 from tokenizer_bn.checkpoint import CheckpointManager
 from tokenizer_bn.config import Config, ensure_dirs, load_config
 from tokenizer_bn.data.ingest import stream_txt_lines
+from tokenizer_bn.device import log_device_info, resolve_device, torch_available
+from tokenizer_bn.eval.gpu_metrics import compute_all_metrics_gpu, paired_fertility_diffs_gpu
 from tokenizer_bn.eval.metrics import compute_all_metrics
 from tokenizer_bn.eval.plots import plot_all_metrics, plot_parity_comparison, plot_rq_comparisons
 from tokenizer_bn.logging_utils import get_logger
@@ -72,10 +74,21 @@ def _paired_test(diffs: list[float]) -> dict:
   return {"test": test_name, "p_value": float(p), "statistic": float(stat)}
 
 
+def _use_gpu_metrics(config: Config) -> bool:
+  return config.device.use_gpu and torch_available() and resolve_device(config.device.device) != "cpu"
+
+
 def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None = None) -> dict:
   cfg = config or load_config()
   ensure_dirs(cfg)
   log = get_logger(STEP, cfg)
+
+  resolved_device = log_device_info(log, cfg.device.device)
+  use_gpu = _use_gpu_metrics(cfg)
+  if use_gpu:
+    log.info("Using GPU-accelerated metric computation on %s", resolved_device)
+  else:
+    log.info("Using CPU metric computation")
 
   corpus_path = cfg.corpus_path
   if not corpus_path.exists():
@@ -103,13 +116,24 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
   baseline_for_parity = en_baseline if en_baseline else tokenizers[0]
   for tok in tokenizers:
     log.info("Evaluating: %s", tok.name)
-    metrics = compute_all_metrics(
-      tok,
-      eval_texts,
-      parallel_pairs=parallel_pairs if parallel_pairs else None,
-      word_list=word_list,
-      baseline_tokenizer=baseline_for_parity,
-    )
+    if use_gpu:
+      metrics = compute_all_metrics_gpu(
+        tok,
+        eval_texts,
+        device=resolved_device,
+        batch_size=cfg.device.batch_size,
+        parallel_pairs=parallel_pairs if parallel_pairs else None,
+        word_list=word_list,
+        baseline_tokenizer=baseline_for_parity,
+      )
+    else:
+      metrics = compute_all_metrics(
+        tok,
+        eval_texts,
+        parallel_pairs=parallel_pairs if parallel_pairs else None,
+        word_list=word_list,
+        baseline_tokenizer=baseline_for_parity,
+      )
     per_tokenizer_metrics[tok.name] = metrics
     for metric_name, result in metrics.items():
       rows.append({
@@ -129,7 +153,7 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
   log.info("Saved metrics table to %s", tables_dir / "eval_metrics.csv")
 
   # Statistical tests for RQ1/RQ2/RQ3
-  stats_rows = _run_rq_tests(tokenizers, eval_texts, cfg)
+  stats_rows = _run_rq_tests(tokenizers, eval_texts, cfg, use_gpu=use_gpu, device=resolved_device)
   stats_df = pd.DataFrame(stats_rows)
   if not stats_df.empty:
     stats_df.to_csv(tables_dir / "rq_statistical_tests.csv", index=False)
@@ -144,6 +168,8 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
     "num_tokenizers": len(tokenizers),
     "num_eval_texts": len(eval_texts),
     "num_parallel_pairs": len(parallel_pairs),
+    "device": resolved_device,
+    "gpu_metrics": use_gpu,
     "metrics": rows,
     "statistical_tests": stats_rows,
   }
@@ -154,7 +180,13 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
   return summary
 
 
-def _run_rq_tests(tokenizers, eval_texts: list[str], config: Config) -> list[dict]:
+def _run_rq_tests(
+  tokenizers,
+  eval_texts: list[str],
+  config: Config,
+  use_gpu: bool = False,
+  device: str = "cpu",
+) -> list[dict]:
   """Paired comparisons for RQ1 (init unit), RQ2 (model type), RQ3 (best vs baselines)."""
   tok_map = {t.name: t for t in tokenizers}
   stats_rows = []
@@ -171,9 +203,14 @@ def _run_rq_tests(tokenizers, eval_texts: list[str], config: Config) -> list[dic
     if name_a not in tok_map or name_b not in tok_map:
       continue
     tok_a, tok_b = tok_map[name_a], tok_map[name_b]
-    fert_a = [len(tok_a.tokenize(t)) / max(len(t.split()), 1) for t in eval_texts]
-    fert_b = [len(tok_b.tokenize(t)) / max(len(t.split()), 1) for t in eval_texts]
-    diffs = [a - b for a, b in zip(fert_a, fert_b)]
+    if use_gpu:
+      diffs = paired_fertility_diffs_gpu(
+        tok_a, tok_b, eval_texts, device=device, batch_size=config.device.batch_size
+      )
+    else:
+      fert_a = [len(tok_a.tokenize(t)) / max(len(t.split()), 1) for t in eval_texts]
+      fert_b = [len(tok_b.tokenize(t)) / max(len(t.split()), 1) for t in eval_texts]
+      diffs = [a - b for a, b in zip(fert_a, fert_b)]
     test_result = _paired_test(diffs)
     stats_rows.append({
       "comparison": label,
