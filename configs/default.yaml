@@ -21,6 +21,7 @@ training:
   vocab_size: 32000
   max_sentence_length: 4192
   character_coverage: 0.9995
+  input_sentence_size: 300000  # subsample for tractable SP training (recommended by SentencePiece)
   seed: 42
   num_threads: 4
 

@@ -84,6 +84,7 @@ def train_all_variants(config: Config | None = None, ckpt: CheckpointManager | N
             character_coverage=cfg.training.character_coverage,
             max_sentence_length=cfg.training.max_sentence_length,
             seed_sentencepiece_size=cfg.training.vocab_size,
+            input_sentence_size=cfg.training.input_sentence_size,
             shuffle_input_sentence=True,
             num_threads=cfg.training.num_threads,
             train_extremely_large_corpus=True,
