@@ -33,7 +33,7 @@ class CorpusConfig:
 
 @dataclass
 class TrainingConfig:
-    vocab_size: int = 32_000
+    vocab_size: int = 8_000
     max_sentence_length: int = 4192
     character_coverage: float = 0.9995
     input_sentence_size: int = 300_000

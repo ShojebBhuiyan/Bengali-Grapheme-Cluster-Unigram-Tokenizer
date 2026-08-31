@@ -21,17 +21,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Path to YAML config (default: configs/default.yaml)",
     )
     parser.add_argument(
+        "command",
+        choices=["build-corpus", "eda", "train", "evaluate", "all"],
+        help="Pipeline step to run",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Re-run step even if checkpoint marks it done",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    subparsers.add_parser("build-corpus", help="Build Bangla-only processed corpus")
-    subparsers.add_parser("eda", help="Run exploratory data analysis")
-    subparsers.add_parser("train", help="Train 2x2 ablation tokenizer variants")
-    subparsers.add_parser("evaluate", help="Evaluate tokenizers and produce charts")
-    subparsers.add_parser("all", help="Run full pipeline end-to-end")
     return parser
 
 

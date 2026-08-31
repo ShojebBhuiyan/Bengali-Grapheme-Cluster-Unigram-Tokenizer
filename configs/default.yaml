@@ -18,7 +18,7 @@ corpus:
   shard_size_lines: 50000
 
 training:
-  vocab_size: 32000
+  vocab_size: 8000  # target; auto-reduced per variant if corpus cannot support it
   max_sentence_length: 4192
   character_coverage: 0.9995
   input_sentence_size: 300000  # subsample for tractable SP training (recommended by SentencePiece)
