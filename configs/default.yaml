@@ -28,6 +28,8 @@ training:
 evaluation:
   eval_sample_lines: 5000
   strr_word_list_size: 1000
+  corpus_eval_max_lines: 0      # 0 = full corpus; set e.g. 50000 for faster runs
+  corpus_eval_batch_size: 512
 
 eda:
   sample_lines: 50000

@@ -45,6 +45,8 @@ class TrainingConfig:
 class EvaluationConfig:
     eval_sample_lines: int = 5000
     strr_word_list_size: int = 1000
+    corpus_eval_max_lines: int = 0  # 0 = evaluate full processed corpus
+    corpus_eval_batch_size: int = 512
 
 
 @dataclass

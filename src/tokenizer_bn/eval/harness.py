@@ -13,9 +13,17 @@ from tokenizer_bn.checkpoint import CheckpointManager
 from tokenizer_bn.config import Config, ensure_dirs, load_config
 from tokenizer_bn.data.ingest import stream_txt_lines
 from tokenizer_bn.device import log_device_info, resolve_device, torch_available
+from tokenizer_bn.eval.corpus_metrics import compute_corpus_metrics
 from tokenizer_bn.eval.gpu_metrics import compute_all_metrics_gpu, paired_fertility_diffs_gpu
 from tokenizer_bn.eval.metrics import compute_all_metrics
-from tokenizer_bn.eval.plots import plot_all_metrics, plot_parity_comparison, plot_rq_comparisons
+from tokenizer_bn.eval.plots import (
+    plot_all_metrics,
+    plot_corpus_metrics_dashboard,
+    plot_eval_metrics_dashboard,
+    plot_metric_heatmap,
+    plot_parity_comparison,
+    plot_rq_comparisons,
+)
 from tokenizer_bn.logging_utils import get_logger
 from tokenizer_bn.tok.wrapper import TiktokenTokenizer, load_all_tokenizers
 
@@ -111,6 +119,7 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
     en_baseline = None
 
   rows = []
+  corpus_rows = []
   per_tokenizer_metrics: dict[str, dict] = {}
 
   baseline_for_parity = en_baseline if en_baseline else tokenizers[0]
@@ -141,16 +150,46 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
         "metric": metric_name,
         "value": result.value,
         "n_samples": result.n_samples,
+        "scope": "sample",
+      })
+
+  # Full-corpus metrics
+  log.info("Computing full-corpus metrics (max_lines=%s)", cfg.evaluation.corpus_eval_max_lines or "all")
+  for tok in tokenizers:
+    log.info("Full corpus eval: %s", tok.name)
+    corpus_metrics = compute_corpus_metrics(
+      tok,
+      corpus_path,
+      batch_size=cfg.evaluation.corpus_eval_batch_size,
+      max_lines=cfg.evaluation.corpus_eval_max_lines,
+    )
+    for metric_name, result in corpus_metrics.items():
+      corpus_rows.append({
+        "tokenizer": tok.name,
+        "metric": metric_name,
+        "value": result.value,
+        "n_samples": result.n_samples,
+        "scope": "full_corpus",
+      })
+      rows.append({
+        "tokenizer": tok.name,
+        "metric": metric_name,
+        "value": result.value,
+        "n_samples": result.n_samples,
+        "scope": "full_corpus",
       })
 
   results_df = pd.DataFrame(rows)
+  corpus_df = pd.DataFrame(corpus_rows)
   tables_dir = cfg.paths.results_dir / "tables"
   figures_dir = cfg.paths.results_dir / "figures"
   tables_dir.mkdir(parents=True, exist_ok=True)
   figures_dir.mkdir(parents=True, exist_ok=True)
 
   results_df.to_csv(tables_dir / "eval_metrics.csv", index=False)
+  corpus_df.to_csv(tables_dir / "corpus_metrics.csv", index=False)
   log.info("Saved metrics table to %s", tables_dir / "eval_metrics.csv")
+  log.info("Saved corpus metrics to %s", tables_dir / "corpus_metrics.csv")
 
   # Statistical tests for RQ1/RQ2/RQ3
   stats_rows = _run_rq_tests(tokenizers, eval_texts, cfg, use_gpu=use_gpu, device=resolved_device)
@@ -160,6 +199,9 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
 
   # Plots
   plot_all_metrics(results_df, figures_dir)
+  plot_corpus_metrics_dashboard(corpus_df, figures_dir / "corpus_metrics_dashboard.png")
+  plot_eval_metrics_dashboard(results_df, figures_dir / "eval_metrics_dashboard.png")
+  plot_metric_heatmap(results_df, figures_dir / "metrics_heatmap.png")
   plot_parity_comparison(results_df, figures_dir / "parity_comparison.png")
   if not stats_df.empty:
     plot_rq_comparisons(stats_df, figures_dir / "rq_statistical_tests.png")
@@ -168,9 +210,11 @@ def run_evaluation(config: Config | None = None, ckpt: CheckpointManager | None 
     "num_tokenizers": len(tokenizers),
     "num_eval_texts": len(eval_texts),
     "num_parallel_pairs": len(parallel_pairs),
+    "corpus_eval_max_lines": cfg.evaluation.corpus_eval_max_lines,
     "device": resolved_device,
     "gpu_metrics": use_gpu,
     "metrics": rows,
+    "corpus_metrics": corpus_rows,
     "statistical_tests": stats_rows,
   }
   with open(tables_dir / "eval_summary.json", "w", encoding="utf-8") as fh:
