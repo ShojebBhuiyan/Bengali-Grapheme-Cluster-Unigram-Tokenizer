@@ -9,9 +9,9 @@ paths:
   results_dir: results
 
 # Default training run configuration
+# The corpus is built exclusively from the pure Bangla source (datasets/bangla/bn.txt).
 # corpus:
-#   # Target size for the processed Bangla training corpus (bytes).
-#   # The 9 GB bn.txt is sampled down to this limit; other sources are included up to the remainder.
+#   # Byte budget for the processed Bangla corpus; bn.txt is truncated to this limit.
 #   corpus_sample_bytes: 9000000000 # 9 GB
 #   min_bangla_ratio: 0.5 # minimum fraction of Bengali script chars to keep a line
 #   dedup: true
@@ -19,12 +19,13 @@ paths:
 #   shard_size_lines: 50000
 
 # training:
-#   vocab_size: 8000 # target; auto-reduced per variant if corpus cannot support it
+#   vocab_size: 8000 # target vocab per variant
 #   max_sentence_length: 4192
-#   character_coverage: 0.9995
-#   input_sentence_size: 300000 # subsample for tractable SP training (recommended by SentencePiece)
+#   character_coverage: 0.9995 # grapheme variants override this to 1.0 (finite akshara alphabet)
+#   input_sentence_size: 300000 # SP training subsample; 0 (or negative) = use every sentence
 #   seed: 42
 #   num_threads: 4
+#   min_vocab_ratio: 0.9 # fail if a variant's vocab collapses below this fraction of target
 
 # evaluation:
 #   eval_sample_lines: 5000
@@ -41,7 +42,7 @@ paths:
 #   device: auto # auto, cpu, cuda, mps
 #   batch_size: 256 # batch size for GPU metric computation
 
-# Full training run configuration
+# Full training run configuration (pure Bangla corpus)
 corpus:
   corpus_sample_bytes: 9000000000 # build from full bn.txt (~9 GB)
   min_bangla_ratio: 0.5
@@ -51,9 +52,10 @@ corpus:
 
 training:
   vocab_size: 32000 # raise if you want paper-scale vocab
-  input_sentence_size: 5000000 # large enough to cover full built corpus
+  input_sentence_size: 0 # 0 = unlimited: train on every sentence in the corpus
   num_threads: 8
   seed: 42
+  min_vocab_ratio: 0.9 # fail loudly if any variant collapses below 90% of target
 
 evaluation:
   eval_sample_lines: 50000 # larger sample for parity/STRR

@@ -14,13 +14,7 @@ from tqdm import tqdm
 from tokenizer_bn.checkpoint import CheckpointManager
 from tokenizer_bn.config import Config, ensure_dirs, load_config
 from tokenizer_bn.data.bangla_filter import filter_bangla_line
-from tokenizer_bn.data.ingest import (
-    estimate_file_bytes,
-    stream_csv_bangla,
-    stream_parquet_pairs,
-    stream_tatoeba_tsv,
-    stream_txt_lines,
-)
+from tokenizer_bn.data.ingest import estimate_file_bytes, stream_txt_lines
 from tokenizer_bn.logging_utils import get_logger
 
 STEP = "build-corpus"
@@ -90,13 +84,6 @@ class CorpusBuilder:
 
         if source_name == "bangla/bn.txt":
             self._process_bn_txt(ds / "bangla" / "bn.txt", corpus_fh, source_name)
-        elif source_name == "bangla-english/ben.txt":
-            self._process_ben_tsv(ds / "bangla-english" / "ben.txt", corpus_fh, source_name)
-        elif source_name.startswith("syncorpus/"):
-            parquet_path = ds / source_name
-            self._process_parquet(parquet_path, corpus_fh, source_name)
-        elif source_name == "transliterated/bengali_transliterated.csv":
-            self._process_transliterated(ds / "transliterated" / "bengali_transliterated.csv", corpus_fh, source_name)
         else:
             self.logger.warning("Unknown source: %s", source_name)
 
@@ -126,55 +113,6 @@ class CorpusBuilder:
             if filtered and self._should_keep(filtered):
                 self._write_line(corpus_fh, filtered, source)
 
-    def _process_ben_tsv(self, path: Path, corpus_fh, source: str) -> None:
-        if not path.exists():
-            return
-        for en_text, bn_text in tqdm(stream_tatoeba_tsv(path), desc=source, unit="pairs"):
-            self.stats[source].lines_read += 1
-            filtered = filter_bangla_line(
-                bn_text,
-                min_ratio=self.config.corpus.min_bangla_ratio,
-                normalize_nfc=self.config.corpus.normalize_nfc,
-            )
-            if filtered and self._should_keep(filtered):
-                self._write_line(corpus_fh, filtered, source)
-            if en_text and filtered:
-                self.parallel_rows.append({"en": en_text, "bn": filtered, "source": source})
-                self.stats[source].parallel_pairs += 1
-
-    def _process_parquet(self, path: Path, corpus_fh, source: str) -> None:
-        if not path.exists():
-            return
-        for bn_text, en_text, _ in tqdm(stream_parquet_pairs(path), desc=source, unit="rows"):
-            self.stats[source].lines_read += 1
-            if self._budget_remaining() <= 0:
-                break
-            filtered = filter_bangla_line(
-                bn_text,
-                min_ratio=self.config.corpus.min_bangla_ratio,
-                normalize_nfc=self.config.corpus.normalize_nfc,
-            )
-            if filtered and self._should_keep(filtered):
-                self._write_line(corpus_fh, filtered, source)
-            if en_text and filtered:
-                self.parallel_rows.append({"en": en_text, "bn": filtered, "source": source})
-                self.stats[source].parallel_pairs += 1
-
-    def _process_transliterated(self, path: Path, corpus_fh, source: str) -> None:
-        if not path.exists():
-            return
-        for text in tqdm(stream_csv_bangla(path), desc=source, unit="rows"):
-            self.stats[source].lines_read += 1
-            if self._budget_remaining() <= 0:
-                break
-            filtered = filter_bangla_line(
-                text,
-                min_ratio=self.config.corpus.min_bangla_ratio,
-                normalize_nfc=self.config.corpus.normalize_nfc,
-            )
-            if filtered and self._should_keep(filtered):
-                self._write_line(corpus_fh, filtered, source)
-
     def build(self) -> dict:
         """Run corpus build and return manifest dict."""
         sources = self._discover_sources()
@@ -187,11 +125,15 @@ class CorpusBuilder:
             for source in sources:
                 self._process_source(source, corpus_fh)
 
-        # Write parallel eval set
+        # Write parallel eval set (only when bilingual sources are present).
+        # The pure-Bangla corpus has no bn-en pairs, so remove any stale file.
         parallel_path = self.config.parallel_path
         if self.parallel_rows:
             pd.DataFrame(self.parallel_rows).to_parquet(parallel_path, index=False)
             self.logger.info("Wrote %d parallel pairs to %s", len(self.parallel_rows), parallel_path)
+        elif parallel_path.exists():
+            parallel_path.unlink()
+            self.logger.info("No parallel pairs; removed stale %s", parallel_path)
 
         manifest = self._build_manifest(sources)
         with open(self.config.manifest_path, "w", encoding="utf-8") as fh:
@@ -201,27 +143,15 @@ class CorpusBuilder:
         return manifest
 
     def _discover_sources(self) -> list[str]:
+        """Discover corpus sources. The corpus is pure Bangla (bangla/bn.txt)."""
         ds = self.config.paths.datasets_dir
         sources: list[str] = []
 
-        # Small sources first (fully included up to budget)
-        ben = ds / "bangla-english" / "ben.txt"
-        if ben.exists():
-            sources.append("bangla-english/ben.txt")
-
-        syncorpus_dir = ds / "syncorpus"
-        if syncorpus_dir.exists():
-            for p in sorted(syncorpus_dir.glob("*.parquet")):
-                sources.append(f"syncorpus/{p.name}")
-
-        translit = ds / "transliterated" / "bengali_transliterated.csv"
-        if translit.exists():
-            sources.append("transliterated/bengali_transliterated.csv")
-
-        # Large bn.txt last (fills remaining budget)
         bn = ds / "bangla" / "bn.txt"
         if bn.exists():
             sources.append("bangla/bn.txt")
+        else:
+            self.logger.warning("Pure Bangla source not found: %s", bn)
 
         return sources
 

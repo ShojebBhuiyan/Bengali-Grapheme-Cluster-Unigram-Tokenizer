@@ -36,9 +36,12 @@ class TrainingConfig:
     vocab_size: int = 8_000
     max_sentence_length: int = 4192
     character_coverage: float = 0.9995
-    input_sentence_size: int = 300_000
+    input_sentence_size: int = 300_000  # 0 (or negative) = use every sentence (unlimited)
     seed: int = 42
     num_threads: int = 4
+    # Fail training if a variant's vocab collapses below this fraction of the
+    # target vocab_size (set 0 to disable the guard).
+    min_vocab_ratio: float = 0.9
 
 
 @dataclass
@@ -83,6 +86,16 @@ class Config:
     @property
     def manifest_path(self) -> Path:
         return self.paths.processed_dir / "manifest.json"
+
+    @property
+    def grapheme_map_path(self) -> Path:
+        """Shared akshara->PUA mapping used by the grapheme variants."""
+        return self.paths.processed_dir / "akshara_map.json"
+
+    @property
+    def grapheme_corpus_path(self) -> Path:
+        """Shared akshara-remapped corpus used to train the grapheme variants."""
+        return self.paths.processed_dir / "corpus_grapheme_remapped.txt"
 
 
 def _resolve_path(root: Path, value: str | Path) -> Path:

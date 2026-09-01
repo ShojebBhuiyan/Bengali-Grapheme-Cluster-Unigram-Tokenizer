@@ -9,6 +9,12 @@ from typing import Optional
 import sentencepiece as spm
 
 from tokenizer_bn.config import Config, load_config
+from tokenizer_bn.segmentation.remap import (
+    build_inverse_map,
+    load_akshara_map,
+    remap_text,
+    unmap_text,
+)
 from tokenizer_bn.train.train_variants import InitUnit, ModelType, variant_name
 
 logger = logging.getLogger(__name__)
@@ -33,6 +39,35 @@ class SentencePieceTokenizer:
 
     def batch_token_lengths(self, texts: list[str]) -> list[int]:
         return [len(self._sp.EncodeAsIds(text)) for text in texts]
+
+
+class GraphemeSentencePieceTokenizer(SentencePieceTokenizer):
+    """Grapheme-initialized tokenizer trained on akshara-remapped text.
+
+    The underlying SentencePiece model operates on Private-Use-Area codepoints
+    (one per akshara), so raw input must be remapped before encoding and the
+    inverse mapping applied when producing human-readable pieces / decoded text.
+    Token *counts* are unaffected by the inverse mapping, so all fertility /
+    compression metrics remain correct.
+    """
+
+    def __init__(self, name: str, model_path: Path, map_path: Path):
+        super().__init__(name, model_path)
+        self._map = load_akshara_map(map_path)
+        self._inverse = build_inverse_map(self._map)
+
+    def encode(self, text: str) -> list[int]:
+        return self._sp.EncodeAsIds(remap_text(text, self._map))
+
+    def tokenize(self, text: str) -> list[str]:
+        pieces = self._sp.EncodeAsPieces(remap_text(text, self._map))
+        return [unmap_text(piece, self._inverse) for piece in pieces]
+
+    def decode(self, ids: list[int]) -> str:
+        return unmap_text(self._sp.DecodeIds(ids), self._inverse)
+
+    def batch_token_lengths(self, texts: list[str]) -> list[int]:
+        return [len(self._sp.EncodeAsIds(remap_text(text, self._map))) for text in texts]
 
 
 class TiktokenTokenizer:
@@ -78,6 +113,12 @@ def load_internal_variant(config: Config, init: InitUnit, model: ModelType) -> O
     if not model_path.exists():
         logger.warning("Internal variant not found: %s", model_path)
         return None
+    if init == InitUnit.GRAPHEME:
+        map_path = config.grapheme_map_path
+        if not map_path.exists():
+            logger.warning("Grapheme map not found for %s: %s", name, map_path)
+            return None
+        return GraphemeSentencePieceTokenizer(name, model_path, map_path)
     return SentencePieceTokenizer(name, model_path)
 
 
