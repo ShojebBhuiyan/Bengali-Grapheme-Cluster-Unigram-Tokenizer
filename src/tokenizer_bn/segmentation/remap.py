@@ -168,20 +168,6 @@ def _meta_matches(meta: dict, max_training_lines: int | None, seed: int) -> bool
     return meta.get("max_training_lines") == max_training_lines and meta.get("seed") == seed
 
 
-def ensure_akshara_map(
-    corpus_path: Path,
-    map_path: Path,
-    max_symbols: int = _MAX_SYMBOLS,
-) -> tuple[dict[str, str], int]:
-    """Build or load the shared akshara map (full-corpus scan, streaming)."""
-    if map_path.exists():
-        mapping = load_akshara_map(map_path)
-        return mapping, len(mapping)
-    mapping = build_akshara_map(corpus_path, max_symbols=max_symbols)
-    save_akshara_map(mapping, map_path)
-    return mapping, len(mapping)
-
-
 def prepare_grapheme_corpus(
     corpus_path: Path,
     remapped_corpus_path: Path,

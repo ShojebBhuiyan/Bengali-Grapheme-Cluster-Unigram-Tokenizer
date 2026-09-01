@@ -40,14 +40,10 @@ class TrainingConfig:
     seed: int = 42
     num_threads: int = 4
     # When input_sentence_size is unlimited (<=0) and the corpus exceeds this
-    # line count, subsample to this many sentences to avoid SentencePiece OOM.
-    # Set 0 to disable the cap (may OOM on multi-GB corpora).
+    # line count, SentencePiece reservoir-samples this many sentences from the
+    # full stream to avoid OOM. Set 0 to disable the cap (may OOM on multi-GB
+    # corpora).
     unlimited_sentence_soft_cap: int = 5_000_000
-    # When input_sentence_size is unlimited (<=0) and the corpus exceeds this
-    # line count, train sequentially on round-robin shards of this size, carrying
-    # vocabulary forward between shards (covers the full corpus without OOM).
-    # Set 0 to disable sharded training (falls back to unlimited_sentence_soft_cap).
-    shard_sentences: int = 5_000_000
     # Fail training if a variant's vocab collapses below this fraction of the
     # target vocab_size (set 0 to disable the guard).
     min_vocab_ratio: float = 0.9
