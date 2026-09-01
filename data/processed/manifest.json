@@ -1,70 +1,22 @@
 {
-  "created_at": "2026-08-31T13:29:27.032542+00:00",
-  "corpus_sample_bytes_budget": 314572800,
-  "corpus_bytes_written": 314572800,
+  "created_at": "2026-09-01T05:11:06.807904+00:00",
+  "corpus_sample_bytes_budget": 9000000000,
+  "corpus_bytes_written": 5279054903,
   "corpus_path": "F:\\Research\\tokenizer\\data\\processed\\corpus_bn.txt",
   "parallel_path": "F:\\Research\\tokenizer\\data\\processed\\parallel_bn_en.parquet",
-  "parallel_pairs": 2073729,
+  "parallel_pairs": 0,
   "dedup": true,
   "min_bangla_ratio": 0.5,
   "sources": {
-    "bangla-english/ben.txt": {
-      "lines_read": 7030,
-      "lines_kept": 6485,
-      "bytes_written": 449440,
-      "parallel_pairs": 7030,
-      "file_bytes": 1223044
-    },
-    "syncorpus/BanglaEng_SynCorpus_10Words.parquet": {
-      "lines_read": 2066800,
-      "lines_kept": 1627228,
-      "bytes_written": 314123360,
-      "parallel_pairs": 2066699,
-      "file_bytes": 31922519
-    },
-    "syncorpus/BanglaEng_SynCorpus_20Words_0000.parquet": {
-      "lines_read": 1,
-      "lines_kept": 0,
-      "bytes_written": 0,
-      "parallel_pairs": 0,
-      "file_bytes": 76717661
-    },
-    "syncorpus/BanglaEng_SynCorpus_20Words_0001.parquet": {
-      "lines_read": 1,
-      "lines_kept": 0,
-      "bytes_written": 0,
-      "parallel_pairs": 0,
-      "file_bytes": 85734864
-    },
-    "syncorpus/BanglaEng_SynCorpus_20Words_0002.parquet": {
-      "lines_read": 1,
-      "lines_kept": 0,
-      "bytes_written": 0,
-      "parallel_pairs": 0,
-      "file_bytes": 74207081
-    },
-    "transliterated/bengali_transliterated.csv": {
-      "lines_read": 1,
-      "lines_kept": 0,
-      "bytes_written": 0,
-      "parallel_pairs": 0,
-      "file_bytes": 1282500130
-    },
     "bangla/bn.txt": {
-      "lines_read": 1,
-      "lines_kept": 0,
-      "bytes_written": 0,
+      "lines_read": 53819478,
+      "lines_kept": 21249208,
+      "bytes_written": 5279054903,
       "parallel_pairs": 0,
       "file_bytes": 9030010164
     }
   },
   "source_order": [
-    "bangla-english/ben.txt",
-    "syncorpus/BanglaEng_SynCorpus_10Words.parquet",
-    "syncorpus/BanglaEng_SynCorpus_20Words_0000.parquet",
-    "syncorpus/BanglaEng_SynCorpus_20Words_0001.parquet",
-    "syncorpus/BanglaEng_SynCorpus_20Words_0002.parquet",
-    "transliterated/bengali_transliterated.csv",
     "bangla/bn.txt"
   ]
 }
