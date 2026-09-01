@@ -18,6 +18,7 @@ inverts the mapping for decoding.
 from __future__ import annotations
 
 import json
+import random
 from collections import Counter
 from pathlib import Path
 
@@ -42,6 +43,9 @@ def build_akshara_map(corpus_path: Path, max_symbols: int = _MAX_SYMBOLS) -> dic
     Aksharas are ordered by descending frequency so the most common clusters get
     the lowest codepoints (purely for determinism/readability). Returns a mapping
     ``{akshara: pua_char}``. Spaces are handled separately and never mapped.
+
+    This is a streaming pass with O(unique_aksharas) memory — safe on multi-GB
+    corpora.
     """
     counter: Counter[str] = Counter()
     for line in stream_txt_lines(corpus_path):
@@ -67,18 +71,51 @@ def remap_text(text: str, mapping: dict[str, str]) -> str:
     return "".join(out)
 
 
-def build_remapped_corpus(corpus_path: Path, output_path: Path, mapping: dict[str, str]) -> int:
-    """Write an akshara-remapped copy of the corpus for SentencePiece training."""
+def build_remapped_training_corpus(
+    corpus_path: Path,
+    output_path: Path,
+    mapping: dict[str, str],
+    max_lines: int | None,
+    seed: int = 42,
+) -> int:
+    """Write a (possibly subsampled) akshara-remapped corpus for SP training.
+
+    When ``max_lines`` is set, reservoir-samples that many sentences in a single
+    streaming pass — never materialising the full remapped corpus on disk.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    count = 0
-    with open(corpus_path, encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        for line in fin:
-            line = line.strip()
+
+    if max_lines is None or max_lines <= 0:
+        count = 0
+        with open(corpus_path, encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+            for line in fin:
+                line = line.strip()
+                if not line:
+                    continue
+                fout.write(remap_text(line, mapping) + "\n")
+                count += 1
+        return count
+
+    rng = random.Random(seed)
+    reservoir: list[str] = []
+    seen = 0
+    with open(corpus_path, encoding="utf-8") as fin:
+        for raw in fin:
+            line = raw.strip()
             if not line:
                 continue
-            fout.write(remap_text(line, mapping) + "\n")
-            count += 1
-    return count
+            remapped = remap_text(line, mapping) + "\n"
+            seen += 1
+            if len(reservoir) < max_lines:
+                reservoir.append(remapped)
+            else:
+                j = rng.randint(0, seen - 1)
+                if j < max_lines:
+                    reservoir[j] = remapped
+
+    with open(output_path, "w", encoding="utf-8") as fout:
+        fout.writelines(reservoir)
+    return len(reservoir)
 
 
 def save_akshara_map(mapping: dict[str, str], path: Path) -> None:
@@ -106,22 +143,83 @@ def unmap_text(text: str, inverse: dict[str, str]) -> str:
     return "".join(inverse.get(ch, "" if ch == OOV_CHAR else ch) for ch in text)
 
 
+def _load_training_meta(meta_path: Path) -> dict | None:
+    if not meta_path.exists():
+        return None
+    with open(meta_path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _save_training_meta(meta_path: Path, max_training_lines: int | None, seed: int, lines_written: int) -> None:
+    meta_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(meta_path, "w", encoding="utf-8") as fh:
+        json.dump(
+            {
+                "max_training_lines": max_training_lines,
+                "seed": seed,
+                "lines_written": lines_written,
+            },
+            fh,
+            indent=2,
+        )
+
+
+def _meta_matches(meta: dict, max_training_lines: int | None, seed: int) -> bool:
+    return meta.get("max_training_lines") == max_training_lines and meta.get("seed") == seed
+
+
+def ensure_akshara_map(
+    corpus_path: Path,
+    map_path: Path,
+    max_symbols: int = _MAX_SYMBOLS,
+) -> tuple[dict[str, str], int]:
+    """Build or load the shared akshara map (full-corpus scan, streaming)."""
+    if map_path.exists():
+        mapping = load_akshara_map(map_path)
+        return mapping, len(mapping)
+    mapping = build_akshara_map(corpus_path, max_symbols=max_symbols)
+    save_akshara_map(mapping, map_path)
+    return mapping, len(mapping)
+
+
 def prepare_grapheme_corpus(
     corpus_path: Path,
     remapped_corpus_path: Path,
     map_path: Path,
+    meta_path: Path,
+    max_training_lines: int | None = None,
+    seed: int = 42,
     max_symbols: int = _MAX_SYMBOLS,
 ) -> tuple[dict[str, str], int]:
-    """Build (and cache) the shared akshara map + remapped corpus.
+    """Build (and cache) the shared akshara map + subsampled remapped training corpus.
 
-    Reuses existing artifacts when both are present so the two grapheme variants
-    do not each re-scan the full corpus. Returns ``(mapping, num_symbols)``.
+    The akshara map is always built from the **full** corpus (streaming). The
+    remapped training file is reservoir-subsampled when ``max_training_lines`` is
+    set so we never duplicate a multi-GB remapped corpus on disk.
+
+    Reuses cached artifacts when map, remapped corpus, and metadata all match.
+    Returns ``(mapping, num_symbols)``.
     """
-    if map_path.exists() and remapped_corpus_path.exists():
+    meta = _load_training_meta(meta_path)
+    if (
+        map_path.exists()
+        and remapped_corpus_path.exists()
+        and meta is not None
+        and _meta_matches(meta, max_training_lines, seed)
+    ):
         mapping = load_akshara_map(map_path)
         return mapping, len(mapping)
 
-    mapping = build_akshara_map(corpus_path, max_symbols=max_symbols)
-    save_akshara_map(mapping, map_path)
-    build_remapped_corpus(corpus_path, remapped_corpus_path, mapping)
+    mapping = build_akshara_map(corpus_path, max_symbols=max_symbols) if not map_path.exists() else load_akshara_map(map_path)
+    if not map_path.exists():
+        save_akshara_map(mapping, map_path)
+
+    lines_written = build_remapped_training_corpus(
+        corpus_path,
+        remapped_corpus_path,
+        mapping,
+        max_lines=max_training_lines,
+        seed=seed,
+    )
+    _save_training_meta(meta_path, max_training_lines, seed, lines_written)
     return mapping, len(mapping)

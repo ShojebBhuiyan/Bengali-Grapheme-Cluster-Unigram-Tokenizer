@@ -60,16 +60,35 @@ def test_prepare_grapheme_corpus_caches(tmp_path):
     corpus.write_text("বাংলা ভাষা\nআমি ভালো আছি\n", encoding="utf-8")
     map_path = tmp_path / "akshara_map.json"
     remapped_path = tmp_path / "remapped.txt"
+    meta_path = tmp_path / "remapped.meta.json"
 
-    mapping, n_symbols = prepare_grapheme_corpus(corpus, remapped_path, map_path)
+    mapping, n_symbols = prepare_grapheme_corpus(
+        corpus, remapped_path, map_path, meta_path, max_training_lines=None, seed=42
+    )
     assert n_symbols == len(mapping) > 0
     assert map_path.exists()
     assert remapped_path.exists()
+    assert meta_path.exists()
 
     # Second call reuses cached artifacts and returns an identical mapping.
-    mapping2, n_symbols2 = prepare_grapheme_corpus(corpus, remapped_path, map_path)
+    mapping2, n_symbols2 = prepare_grapheme_corpus(
+        corpus, remapped_path, map_path, meta_path, max_training_lines=None, seed=42
+    )
     assert mapping2 == mapping
     assert n_symbols2 == n_symbols
+
+
+def test_remapped_training_corpus_subsample(tmp_path):
+    from tokenizer_bn.segmentation.remap import build_remapped_training_corpus
+
+    corpus = tmp_path / "corpus.txt"
+    lines = [f"বাংলা লাইন {i}" for i in range(100)]
+    corpus.write_text("\n".join(lines), encoding="utf-8")
+    mapping = build_akshara_map(corpus)
+    out = tmp_path / "sub.txt"
+    n = build_remapped_training_corpus(corpus, out, mapping, max_lines=10, seed=42)
+    assert n == 10
+    assert len(out.read_text(encoding="utf-8").strip().splitlines()) == 10
 
 
 def test_validate_segmentation():

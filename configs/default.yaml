@@ -23,6 +23,8 @@ paths:
 #   max_sentence_length: 4192
 #   character_coverage: 0.9995 # grapheme variants override this to 1.0 (finite akshara alphabet)
 #   input_sentence_size: 300000 # SP training subsample; 0 (or negative) = use every sentence
+#   unlimited_sentence_soft_cap: 5000000 # single subsample fallback when sharding disabled
+#   shard_sentences: 5000000 # when unlimited, train full corpus in sequential shards of this size
 #   seed: 42
 #   num_threads: 4
 #   min_vocab_ratio: 0.9 # fail if a variant's vocab collapses below this fraction of target
@@ -52,7 +54,9 @@ corpus:
 
 training:
   vocab_size: 32000 # raise if you want paper-scale vocab
-  input_sentence_size: 0 # 0 = unlimited: train on every sentence in the corpus
+  input_sentence_size: 0 # 0 = unlimited; use shard_sentences below for full-corpus training
+  unlimited_sentence_soft_cap: 5000000 # fallback single subsample when shard_sentences=0
+  shard_sentences: 5000000 # sequential shards with vocab carry-over (~8 shards for 37M lines)
   num_threads: 8
   seed: 42
   min_vocab_ratio: 0.9 # fail loudly if any variant collapses below 90% of target

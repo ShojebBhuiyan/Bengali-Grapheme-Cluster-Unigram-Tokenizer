@@ -11,7 +11,9 @@ import sentencepiece as spm
 from tokenizer_bn.checkpoint import CheckpointManager
 from tokenizer_bn.config import Config, ensure_dirs, load_config
 from tokenizer_bn.logging_utils import get_logger
-from tokenizer_bn.segmentation.remap import prepare_grapheme_corpus
+from tokenizer_bn.segmentation.remap import ensure_akshara_map, prepare_grapheme_corpus, remap_text
+from tokenizer_bn.train.sentence_sample import TrainingMode, resolve_training_plan
+from tokenizer_bn.train.sharded_training import train_sharded_sentencepiece
 
 STEP = "train"
 logger = get_logger(STEP)
@@ -87,11 +89,7 @@ def _train_sentencepiece(sp_kwargs: dict, model_prefix: str, log) -> int:
 
 
 def _assert_vocab_ok(name: str, effective: int, target: int, min_ratio: float, log) -> None:
-    """Fail loudly if a variant collapsed far below its target vocabulary.
-
-    This guards against the silent grapheme-vocab collapse: a variant that only
-    reaches a tiny fraction of the target makes the 2x2 ablation meaningless.
-    """
+    """Fail loudly if a variant collapsed far below its target vocabulary."""
     if min_ratio <= 0:
         return
     floor = int(target * min_ratio)
@@ -124,6 +122,14 @@ def train_all_variants(config: Config | None = None, ckpt: CheckpointManager | N
     if not corpus_path.exists():
         raise FileNotFoundError(f"Corpus not found: {corpus_path}")
 
+    plan = resolve_training_plan(
+        cfg.training.input_sentence_size,
+        cfg.training.unlimited_sentence_soft_cap,
+        cfg.training.shard_sentences,
+        corpus_path,
+    )
+    log.info("Training plan: %s", plan.log_message)
+
     results = {}
     for init, model in VARIANTS:
         name = variant_name(init, model)
@@ -139,22 +145,29 @@ def train_all_variants(config: Config | None = None, ckpt: CheckpointManager | N
         model_prefix = str(model_dir / name)
 
         train_input = corpus_path
-        sp_kwargs_extra: dict = {}
-        # Grapheme variants use a finite akshara alphabet: cover it fully.
+        line_transform = None
         char_coverage = cfg.training.character_coverage
 
         if init == InitUnit.GRAPHEME:
-            # Remap each akshara to a single PUA codepoint so the base alphabet
-            # is the akshara inventory and every learned piece is akshara-aligned.
-            log.info("Preparing akshara-remapped corpus for %s", name)
-            mapping, n_symbols = prepare_grapheme_corpus(
-                corpus_path,
-                cfg.grapheme_corpus_path,
-                cfg.grapheme_map_path,
-            )
+            log.info("Building akshara map for %s", name)
+            mapping, n_symbols = ensure_akshara_map(corpus_path, cfg.grapheme_map_path)
             log.info("Grapheme akshara alphabet: %d symbols", n_symbols)
-            train_input = cfg.grapheme_corpus_path
+            line_transform = lambda text, m=mapping: remap_text(text, m)
             char_coverage = 1.0
+
+            if plan.mode == TrainingMode.SINGLE:
+                log.info("Preparing subsampled remapped training corpus for %s", name)
+                prepare_grapheme_corpus(
+                    corpus_path,
+                    cfg.grapheme_corpus_path,
+                    cfg.grapheme_map_path,
+                    cfg.grapheme_corpus_meta_path,
+                    max_training_lines=plan.remapped_limit,
+                    seed=cfg.training.seed,
+                )
+                train_input = cfg.grapheme_corpus_path
+            else:
+                train_input = corpus_path
 
         sp_model_type = "unigram" if model == ModelType.UNIGRAM else "bpe"
         sp_kwargs = dict(
@@ -167,18 +180,32 @@ def train_all_variants(config: Config | None = None, ckpt: CheckpointManager | N
             shuffle_input_sentence=True,
             num_threads=cfg.training.num_threads,
             train_extremely_large_corpus=True,
-            **sp_kwargs_extra,
         )
 
-        # input_sentence_size <= 0 means "use every sentence" (unlimited).
-        if cfg.training.input_sentence_size and cfg.training.input_sentence_size > 0:
-            sp_kwargs["input_sentence_size"] = cfg.training.input_sentence_size
+        if plan.mode == TrainingMode.SINGLE and plan.sp_size is not None and plan.sp_size > 0:
+            sp_kwargs["input_sentence_size"] = plan.sp_size
 
         if init == InitUnit.BYTE:
             sp_kwargs["byte_fallback"] = True
 
         log.info("SentencePiece training: %s", {k: v for k, v in sp_kwargs.items() if k != "input"})
-        effective_vocab = _train_sentencepiece(sp_kwargs, model_prefix, log)
+
+        if plan.mode == TrainingMode.SHARDED:
+            effective_vocab = train_sharded_sentencepiece(
+                sp_kwargs,
+                model_prefix,
+                train_input,
+                plan.num_shards,
+                _train_sentencepiece,
+                log,
+                checkpoint=checkpoint,
+                step=STEP,
+                variant_key=shard_key,
+                line_transform=line_transform,
+            )
+        else:
+            effective_vocab = _train_sentencepiece(sp_kwargs, model_prefix, log)
+
         _assert_vocab_ok(name, effective_vocab, cfg.training.vocab_size, cfg.training.min_vocab_ratio, log)
 
         checkpoint.mark_shard_done(STEP, shard_key)
@@ -186,6 +213,8 @@ def train_all_variants(config: Config | None = None, ckpt: CheckpointManager | N
             "status": "done",
             "model_prefix": model_prefix,
             "effective_vocab_size": effective_vocab,
+            "training_mode": plan.mode.value,
+            "num_shards": plan.num_shards if plan.mode == TrainingMode.SHARDED else 1,
         }
         log.info("Variant %s training complete (vocab=%d)", name, effective_vocab)
 
