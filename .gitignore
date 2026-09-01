@@ -5,7 +5,6 @@ data/processed/*
 models/
 logs/
 checkpoints/
-results/
 __pycache__/
 *.pyc
 .pytest_cache/

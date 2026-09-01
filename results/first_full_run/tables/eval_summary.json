@@ -1,0 +1,484 @@
+{
+  "num_tokenizers": 6,
+  "num_eval_texts": 50000,
+  "num_parallel_pairs": 5000,
+  "corpus_eval_max_lines": 0,
+  "device": "cuda",
+  "gpu_metrics": true,
+  "metrics": [
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "fertility",
+      "value": 6.369474411010742,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "chars_per_token",
+      "value": 0.8628362417221069,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "parity_bn_en",
+      "value": 0.9448808431625366,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "strr",
+      "value": 0.0,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "fertility",
+      "value": 3.3666718006134033,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "chars_per_token",
+      "value": 1.6324173212051392,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "parity_bn_en",
+      "value": 1.4447789192199707,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "strr",
+      "value": 0.012000000104308128,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "fertility",
+      "value": 1.1600666046142578,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "chars_per_token",
+      "value": 4.7374982833862305,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "parity_bn_en",
+      "value": 0.38951030373573303,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "strr",
+      "value": 0.781000018119812,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "fertility",
+      "value": 1.16400945186615,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "chars_per_token",
+      "value": 4.7214508056640625,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "parity_bn_en",
+      "value": 0.36765432357788086,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "strr",
+      "value": 0.781000018119812,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "fertility",
+      "value": 7.879393577575684,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "chars_per_token",
+      "value": 0.6974918842315674,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "parity_bn_en",
+      "value": 5.282039165496826,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "strr",
+      "value": 0.003000000026077032,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "fertility",
+      "value": 1.9707013368606567,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "chars_per_token",
+      "value": 2.788760185241699,
+      "n_samples": 50000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "parity_bn_en",
+      "value": 1.6156373023986816,
+      "n_samples": 5000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "strr",
+      "value": 0.36900001764297485,
+      "n_samples": 1000,
+      "scope": "sample"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "corpus_token_count",
+      "value": 3298290538.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "compression_ratio",
+      "value": 0.8627018209030802,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "tokens_per_bengali_word",
+      "value": 6.370837077101784,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "corpus_token_count",
+      "value": 1742965334.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "compression_ratio",
+      "value": 1.6325288848229038,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "tokens_per_bengali_word",
+      "value": 3.36663736745386,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "corpus_token_count",
+      "value": 598736839.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "compression_ratio",
+      "value": 4.7524071806779205,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.1564944959763643,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "corpus_token_count",
+      "value": 600658579.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "compression_ratio",
+      "value": 4.737202384984166,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.1602064468501565,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "corpus_token_count",
+      "value": 4079808285.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "compression_ratio",
+      "value": 0.6974448440289884,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "tokens_per_bengali_word",
+      "value": 7.88038336528892,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "corpus_token_count",
+      "value": 1019489036.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "compression_ratio",
+      "value": 2.7910464482915733,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.9692014622174427,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    }
+  ],
+  "corpus_metrics": [
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "corpus_token_count",
+      "value": 3298290538.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "compression_ratio",
+      "value": 0.8627018209030802,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_unigram",
+      "metric": "tokens_per_bengali_word",
+      "value": 6.370837077101784,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "corpus_token_count",
+      "value": 1742965334.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "compression_ratio",
+      "value": 1.6325288848229038,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "grapheme_bpe",
+      "metric": "tokens_per_bengali_word",
+      "value": 3.36663736745386,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "corpus_token_count",
+      "value": 598736839.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "compression_ratio",
+      "value": 4.7524071806779205,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_unigram",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.1564944959763643,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "corpus_token_count",
+      "value": 600658579.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "compression_ratio",
+      "value": 4.737202384984166,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "byte_bpe",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.1602064468501565,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "corpus_token_count",
+      "value": 4079808285.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "compression_ratio",
+      "value": 0.6974448440289884,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "gpt4_tiktoken",
+      "metric": "tokens_per_bengali_word",
+      "value": 7.88038336528892,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "corpus_token_count",
+      "value": 1019489036.0,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "compression_ratio",
+      "value": 2.7910464482915733,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    },
+    {
+      "tokenizer": "banglabert",
+      "metric": "tokens_per_bengali_word",
+      "value": 1.9692014622174427,
+      "n_samples": 37599994,
+      "scope": "full_corpus"
+    }
+  ],
+  "statistical_tests": [
+    {
+      "comparison": "RQ1_grapheme_vs_byte_unigram",
+      "metric": "fertility",
+      "tokenizer_a": "grapheme_unigram",
+      "tokenizer_b": "byte_unigram",
+      "mean_diff": 5.244128832361699,
+      "test": "wilcoxon",
+      "p_value": 0.0,
+      "statistic": 1445.0
+    },
+    {
+      "comparison": "RQ1_grapheme_vs_byte_bpe",
+      "metric": "fertility",
+      "tokenizer_a": "grapheme_bpe",
+      "tokenizer_b": "byte_bpe",
+      "mean_diff": 2.2209905379104615,
+      "test": "wilcoxon",
+      "p_value": 0.0,
+      "statistic": 151512.5
+    },
+    {
+      "comparison": "RQ2_unigram_vs_bpe_grapheme",
+      "metric": "fertility",
+      "tokenizer_a": "grapheme_unigram",
+      "tokenizer_b": "grapheme_bpe",
+      "mean_diff": 3.020277073442936,
+      "test": "wilcoxon",
+      "p_value": 0.0,
+      "statistic": 0.0
+    },
+    {
+      "comparison": "RQ2_unigram_vs_bpe_byte",
+      "metric": "fertility",
+      "tokenizer_a": "byte_unigram",
+      "tokenizer_b": "byte_bpe",
+      "mean_diff": -0.0028612067437171936,
+      "test": "wilcoxon",
+      "p_value": 4.870735025447541e-51,
+      "statistic": 2075853.0
+    },
+    {
+      "comparison": "RQ3_grapheme_unigram_vs_gpt4",
+      "metric": "fertility",
+      "tokenizer_a": "grapheme_unigram",
+      "tokenizer_b": "gpt4_tiktoken",
+      "mean_diff": -1.504782000632286,
+      "test": "wilcoxon",
+      "p_value": 0.0,
+      "statistic": 1977672.0
+    }
+  ]
+}

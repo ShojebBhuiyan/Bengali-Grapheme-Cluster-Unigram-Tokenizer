@@ -1,0 +1,6 @@
+comparison,metric,tokenizer_a,tokenizer_b,mean_diff,test,p_value,statistic
+RQ1_grapheme_vs_byte_unigram,fertility,grapheme_unigram,byte_unigram,0.0413972140955925,wilcoxon,0.0,238974482.5
+RQ1_grapheme_vs_byte_bpe,fertility,grapheme_bpe,byte_bpe,0.03398918543815613,wilcoxon,0.0,258342020.5
+RQ2_unigram_vs_bpe_grapheme,fertility,grapheme_unigram,grapheme_bpe,-0.011604307436943054,wilcoxon,9.239175997920548e-72,190244081.0
+RQ2_unigram_vs_bpe_byte,fertility,byte_unigram,byte_bpe,-0.019012336096763612,wilcoxon,0.0,68299804.0
+RQ3_grapheme_unigram_vs_gpt4,fertility,grapheme_unigram,gpt4_tiktoken,-6.627053447566032,wilcoxon,0.0,0.0
